@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pixl Patisserie</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- top bar with logo, stats and mode buttons -->
+  <header class="topbar">
+    <div class="logo">PIXL PATISSERIE</div>
+    <div class="chips">
+      <div class="chip">COINS <span id="coins">0</span></div>
+      <div class="chip">COMBO <span id="combo">x1.00</span></div>
+      <div class="chip">SERVED <span id="served">0</span></div>
+      <div class="seg">
+        <button class="seg-btn on" data-mode="shift">SHIFT</button>
+        <button class="seg-btn" data-mode="sandbox">SANDBOX</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+
+    <!-- left panel with the customer and the order ticket -->
+    <section class="panel" aria-label="Customer and order">
+      <h2 class="panel-title">CUSTOMER</h2>
+      <div class="scene">
+        <div class="bubble" id="bubble">One cake please!</div>
+        <div class="customer" id="customer"></div>
+        <div class="scene-counter"></div>
+      </div>
+      <div class="ticket-area">
+        <div class="ticket" id="ticket">
+          <h3 class="ticket-title">ORDER #001</h3>
+          <div class="ticket-row"><span class="lbl">SPONGE</span><span class="val">Chocolate</span></div>
+          <div class="ticket-row"><span class="lbl">FROSTING</span><span class="val">Pink Butter</span></div>
+          <div class="ticket-row"><span class="lbl">DRIP</span><span class="val">Caramel</span></div>
+          <div class="ticket-row"><span class="lbl">TOPPING</span><span class="val">Cherry</span></div>
+          <div class="patience">
+            <span class="lbl">PATIENCE</span>
+            <div class="bar"><div class="bar-fill" id="patienceFill"></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- center panel with the cake stand -->
+    <section class="panel" aria-label="Cake stand">
+      <h2 class="panel-title">CAKE STAND</h2>
+      <div class="stage" id="stage">
+        <div class="hint" id="hint">Click ingredients to stack your cake from the bottom up</div>
+        <div class="stack" id="stack"></div>
+        <div class="stand-plate"></div>
+        <div class="stand-stem"></div>
+        <div class="stand-base"></div>
+        <div class="stage-counter"></div>
+      </div>
+      <div class="stage-bar">
+        <button class="btn btn-red" id="trashBtn">TRASH</button>
+        <div class="value">CAKE VALUE <span id="value">$0</span></div>
+        <button class="btn btn-green" id="serveBtn">PACK AND SERVE</button>
+      </div>
+    </section>
+
+    <!-- right panel with the ingredient station -->
+    <section class="panel" aria-label="Ingredient station">
+      <h2 class="panel-title">INGREDIENT STATION</h2>
+      <div class="tabs" id="tabs">
+        <button class="tab on" data-tab="sponge">SPONGE</button>
+        <button class="tab" data-tab="frosting">FROST</button>
+        <button class="tab" data-tab="drip">DRIP</button>
+        <button class="tab" data-tab="topping">TOPS</button>
+      </div>
+      <div class="grid" id="grid">
+        <button class="item" data-kind="sponge" data-id="vanilla"><span class="swatch" style="--c:#ffe3a3"></span><span>Vanilla</span><small>$3</small></button>
+        <button class="item" data-kind="sponge" data-id="chocolate"><span class="swatch" style="--c:#8a5a44"></span><span>Chocolate</span><small>$3</small></button>
+        <button class="item" data-kind="sponge" data-id="strawberry"><span class="swatch" style="--c:#ffa6c1"></span><span>Strawberry</span><small>$4</small></button>
+        <button class="item" data-kind="sponge" data-id="velvet"><span class="swatch" style="--c:#d9566a"></span><span>Red Velvet</span><small>$5</small></button>
+        <button class="item" data-kind="sponge" data-id="matcha"><span class="swatch" style="--c:#b9d98c"></span><span>Matcha</span><small>$5</small></button>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="game.js"></script>
+</body>
+</html>
