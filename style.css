@@ -357,3 +357,122 @@ body {
   border: var(--px) solid var(--ink);
   box-shadow: inset 0 var(--px) 0 rgba(255, 255, 255, 0.4), inset 0 calc(var(--px) * -1) 0 rgba(0, 0, 0, 0.14);
 }
+/* shared look for every cake layer */
+.layer {
+  position: relative;
+  margin-bottom: -4px;
+  border: var(--px) solid var(--ink);
+  background: var(--c);
+  box-shadow: inset 0 var(--px) 0 rgba(255, 255, 255, 0.4), inset 0 calc(var(--px) * -1) 0 rgba(0, 0, 0, 0.14);
+}
+
+/* sponge layers have little crumb dots */
+.sponge { width: 176px; height: 36px; z-index: 1; }
+
+.sponge::before {
+  content: "";
+  position: absolute;
+  left: 14px;
+  top: 8px;
+  width: 4px;
+  height: 4px;
+  background: rgba(0, 0, 0, 0.2);
+  box-shadow: 38px 10px 0 rgba(0, 0, 0, 0.2), 82px 2px 0 rgba(0, 0, 0, 0.2), 118px 12px 0 rgba(0, 0, 0, 0.2),
+    24px 14px 0 rgba(255, 255, 255, 0.4), 100px 14px 0 rgba(255, 255, 255, 0.4);
+}
+
+/* frosting has a scalloped edge hanging below it */
+.frosting { width: 194px; height: 22px; z-index: 2; }
+
+.frosting::after {
+  content: "";
+  position: absolute;
+  left: -4px;
+  right: -4px;
+  bottom: -12px;
+  height: 8px;
+  background: repeating-linear-gradient(90deg, var(--c) 0 12px, transparent 12px 20px);
+  filter: drop-shadow(0 4px 0 var(--ink));
+}
+
+/* drip runs down the sides in two rows of drops */
+.drip { width: 194px; height: 14px; z-index: 3; }
+
+.drip::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: -16px;
+  height: 12px;
+  background: repeating-linear-gradient(90deg, var(--c) 0 10px, transparent 10px 34px);
+  filter: drop-shadow(4px 0 0 var(--ink)) drop-shadow(-4px 0 0 var(--ink)) drop-shadow(0 4px 0 var(--ink));
+}
+
+.drip::before {
+  content: "";
+  position: absolute;
+  left: 22px;
+  right: 6px;
+  bottom: -30px;
+  height: 26px;
+  background: repeating-linear-gradient(90deg, var(--c) 0 8px, transparent 8px 52px);
+  filter: drop-shadow(4px 0 0 var(--ink)) drop-shadow(-4px 0 0 var(--ink)) drop-shadow(0 4px 0 var(--ink));
+}
+
+/* toppings sit in a row on the very top */
+.toppings {
+  position: relative;
+  z-index: 6;
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+  justify-content: center;
+  margin-bottom: -2px;
+}
+
+/* new layers fall in and bounce */
+.drop { animation: drop 0.5s cubic-bezier(0.3, 1.7, 0.5, 1) both; }
+
+@keyframes drop {
+  0% { transform: translateY(-190px) scaleY(1.15); opacity: 0; }
+  25% { opacity: 1; }
+  100% { transform: none; }
+}
+
+/* refused clicks shake the stack */
+.shake { animation: shake 0.4s steps(8); }
+
+@keyframes shake {
+  25% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
+}
+
+/* message bar at the top of the stage */
+.toast {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 12px;
+  background: var(--ink);
+  color: var(--cream);
+  font-size: 13px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.toast.show { opacity: 1; }
+
+/* topping art inside the ingredient buttons */
+.item-art { height: 30px; display: flex; align-items: center; justify-content: center; }
+
+/* patience bar changes color as it drains */
+.bar-fill { transition: width 0.1s linear; }
+.bar-fill.mid { background: #ffd34d; }
+.bar-fill.low { background: #f0475f; }
+
+/* small line under the ticket title */
+.ticket-sub { font-size: 13px; opacity: 0.7; margin-bottom: 8px; }
