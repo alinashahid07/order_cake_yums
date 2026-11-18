@@ -34,12 +34,46 @@ const MENU = {
 const MAX_LAYERS = 6;
 const MAX_SPONGES = 3;
 const MAX_TOPPINGS = 4;
+const PATIENCE_SECONDS = 40;
 
 // the cake is a list of layers from bottom to top
 let currentCake = [];
 let activeTab = "sponge";
 let nextLayerId = 1;
 let drawnIds = new Set();
+
+// shift state for orders and scoring
+let mode = "shift";
+let coins = 0;
+let combo = 0;
+let served = 0;
+let missed = 0;
+let tips = 0;
+let bestCombo = 0;
+let beatRecord = false;
+let currentOrder = null;
+let orderNumber = 0;
+let patience = 1;
+let shiftRunning = false;
+let busy = false;
+
+// high score is saved in the browser so it survives a refresh
+function loadHighScore() {
+  try {
+    return Number(localStorage.getItem("pixlPatisserieHigh")) || 0;
+  } catch (err) {
+    return 0;
+  }
+}
+
+function saveHighScore(score) {
+  try {
+    localStorage.setItem("pixlPatisserieHigh", String(score));
+  } catch (err) {}
+}
+
+let highScore = loadHighScore();
+let shiftStartHigh = highScore;
 
 // pixel art for the toppings drawn from rows of letters
 const INK = "#5b3a4a";
@@ -88,9 +122,29 @@ function toppingArt(id, scale) {
     '" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">' + squares + "</svg>";
 }
 
-// finds one ingredient in the menu
+// small helpers
+function pick(list) {
+  return list[Math.floor(Math.random() * list.length)];
+}
+
 function findItem(kind, id) {
   return MENU[kind].find(function (item) { return item.id === id; });
+}
+
+function nameOf(kind, id) {
+  return findItem(kind, id).name;
+}
+
+function sameList(a, b) {
+  return a.length === b.length && a.every(function (x, i) { return x === b[i]; });
+}
+
+function sameSet(a, b) {
+  return a.length === b.length && a.every(function (x) { return b.includes(x); });
+}
+
+function setBubble(text) {
+  document.getElementById("bubble").textContent = text;
 }
 
 // adds up the price of every layer on the stand
@@ -117,6 +171,49 @@ function shakeStack() {
   void stack.offsetWidth;
   stack.classList.add("shake");
 }
+
+// sound effects made with the web audio api
+let soundOn = true;
+let audioCtx = null;
+
+function playTone(freq, seconds, wave, volume, endFreq, delay) {
+  if (!soundOn) return;
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const start = audioCtx.currentTime + (delay || 0);
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = wave;
+    osc.frequency.setValueAtTime(freq, start);
+    if (endFreq) osc.frequency.exponentialRampToValueAtTime(endFreq, start + seconds);
+    gain.gain.setValueAtTime(volume, start);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + seconds);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(start);
+    osc.stop(start + seconds);
+  } catch (err) {}
+}
+
+const sfx = {
+  plop: function () {
+    playTone(420, 0.12, "square", 0.05, 160, 0);
+    playTone(220, 0.08, "triangle", 0.05, 120, 0.04);
+  },
+  ding: function () {
+    playTone(988, 0.12, "square", 0.05, null, 0);
+    playTone(1319, 0.28, "square", 0.05, null, 0.1);
+  },
+  buzz: function () {
+    playTone(160, 0.25, "sawtooth", 0.05, 90, 0);
+  },
+  trash: function () {
+    playTone(300, 0.2, "square", 0.04, 70, 0);
+  },
+  print: function () {
+    for (let i = 0; i < 8; i++) playTone(900 + (i % 2) * 200, 0.04, "square", 0.03, null, i * 0.08);
+  }
+};
 
 // builds the ingredient buttons for the active tab
 function renderGrid() {
@@ -161,13 +258,15 @@ function addIngredient(id) {
   if (reason) {
     showToast(reason);
     shakeStack();
+    sfx.buzz();
     return;
   }
-  if (!shiftRunning) {
+  if (mode === "shift" && !shiftRunning) {
     shiftRunning = true;
     setBubble("One cake please! Check the ticket.");
   }
   currentCake.push({ uid: nextLayerId++, kind: activeTab, id: id });
+  sfx.plop();
   renderCake();
 }
 
@@ -176,8 +275,10 @@ function resetCake() {
   if (busy || currentCake.length === 0) return;
   currentCake = [];
   drawnIds.clear();
+  sfx.trash();
   renderCake();
 }
+
 // draws the whole stack and only animates layers that are new
 function renderCake() {
   const stack = document.getElementById("stack");
@@ -210,50 +311,6 @@ function renderCake() {
   document.getElementById("value").textContent = "$" + cakeValue();
 }
 
-// wires up the clicks
-document.getElementById("tabs").addEventListener("click", function (e) {
-  const tab = e.target.closest(".tab");
-  if (tab) setTab(tab.dataset.tab);
-});
-document.getElementById("grid").addEventListener("click", function (e) {
-  const item = e.target.closest(".item");
-  if (item) addIngredient(item.dataset.id);
-});
-document.getElementById("trashBtn").addEventListener("click", resetCake);
-
-// first draw
-// shift state for orders and scoring
-let coins = 0;
-let combo = 0;
-let served = 0;
-let currentOrder = null;
-let orderNumber = 0;
-let patience = 1;
-let shiftRunning = false;
-let busy = false;
-const PATIENCE_SECONDS = 40;
-
-// small helpers
-function pick(list) {
-  return list[Math.floor(Math.random() * list.length)];
-}
-
-function nameOf(kind, id) {
-  return findItem(kind, id).name;
-}
-
-function sameList(a, b) {
-  return a.length === b.length && a.every(function (x, i) { return x === b[i]; });
-}
-
-function sameSet(a, b) {
-  return a.length === b.length && a.every(function (x) { return b.includes(x); });
-}
-
-function setBubble(text) {
-  document.getElementById("bubble").textContent = text;
-}
-
 // builds a random order with one or two sponges and a frosting and maybe a drip and one or two toppings
 function makeOrder() {
   const order = {
@@ -280,13 +337,20 @@ function orderValue(order) {
   return sum * 2 + 4;
 }
 
-// draws the ticket for the current order
+// draws the ticket or the free play note in sandbox mode
 function renderTicket() {
+  const ticket = document.getElementById("ticket");
+  if (mode === "sandbox") {
+    ticket.innerHTML =
+      '<h3 class="ticket-title">FREE PLAY</h3>' +
+      '<div class="ticket-sub">No timer and no orders. Stack any dream cake you like then show it off.</div>';
+    return;
+  }
   const o = currentOrder;
   const sponges = o.sponges.map(function (id) { return nameOf("sponge", id); }).join(" + ");
   const drip = o.drip ? nameOf("drip", o.drip) : "none";
   const toppings = o.toppings.map(function (id) { return nameOf("topping", id); }).join(", ");
-  document.getElementById("ticket").innerHTML =
+  ticket.innerHTML =
     '<h3 class="ticket-title">ORDER #' + String(orderNumber).padStart(3, "0") + "</h3>" +
     '<div class="ticket-sub">Pays $' + orderValue(o) + " plus tip</div>" +
     '<div class="ticket-row"><span class="lbl">SPONGE</span><span class="val">' + sponges + "</span></div>" +
@@ -305,6 +369,7 @@ function updateStats() {
   document.getElementById("coins").textContent = coins;
   document.getElementById("combo").textContent = "x" + comboMultiplier().toFixed(2);
   document.getElementById("served").textContent = served;
+  document.getElementById("highScore").textContent = highScore;
 }
 
 // checks the cake against the order kind by kind
@@ -322,6 +387,7 @@ function cakeMatchesOrder() {
 
 // brings in the next customer with a fresh order and an empty stand
 function nextCustomer() {
+  if (mode !== "shift" || document.getElementById("modal").classList.contains("show")) return;
   currentCake = [];
   drawnIds.clear();
   currentOrder = makeOrder();
@@ -338,6 +404,13 @@ function serveCake() {
   if (busy) return;
   if (currentCake.length === 0) {
     showToast("STACK A CAKE FIRST");
+    sfx.buzz();
+    return;
+  }
+  if (mode === "sandbox") {
+    sfx.ding();
+    setBubble("Wow that looks delicious!");
+    showToast("LOOKS DELICIOUS");
     return;
   }
   if (cakeMatchesOrder()) {
@@ -345,9 +418,17 @@ function serveCake() {
     const base = Math.round(orderValue(currentOrder) * comboMultiplier());
     const tip = Math.round(base * 0.5 * Math.max(0, patience));
     coins += base + tip;
+    tips += tip;
     combo++;
     served++;
+    bestCombo = Math.max(bestCombo, combo);
+    if (coins > highScore) {
+      highScore = coins;
+      saveHighScore(highScore);
+      if (highScore > shiftStartHigh) beatRecord = true;
+    }
     updateStats();
+    sfx.ding();
     setBubble("Yum! Thank you!");
     showToast("+" + (base + tip) + " COINS (TIP " + tip + ")");
     setTimeout(nextCustomer, 1300);
@@ -355,6 +436,7 @@ function serveCake() {
     combo = 0;
     updateStats();
     shakeStack();
+    sfx.buzz();
     setBubble("Hmm that is not what I ordered");
     showToast("NOT THE ORDER");
   }
@@ -363,8 +445,10 @@ function serveCake() {
 // the customer gives up and leaves
 function customerLeaves() {
   busy = true;
+  missed++;
   combo = 0;
   updateStats();
+  sfx.buzz();
   setBubble("Too slow! Bye!");
   showToast("CUSTOMER LEFT");
   setTimeout(nextCustomer, 1300);
@@ -376,7 +460,7 @@ setInterval(function () {
   const now = performance.now();
   const seconds = (now - lastTick) / 1000;
   lastTick = now;
-  if (!shiftRunning || busy) return;
+  if (mode !== "shift" || !shiftRunning || busy) return;
   patience -= seconds / PATIENCE_SECONDS;
   const fill = document.getElementById("patienceFill");
   if (fill) {
@@ -386,7 +470,108 @@ setInterval(function () {
   if (patience <= 0) customerLeaves();
 }, 100);
 
+// switches between shift mode and the free play sandbox
+function setMode(newMode) {
+  mode = newMode;
+  document.querySelectorAll(".seg-btn").forEach(function (btn) {
+    btn.classList.toggle("on", btn.dataset.mode === newMode);
+  });
+  currentCake = [];
+  drawnIds.clear();
+  busy = false;
+  shiftRunning = false;
+  const serveBtn = document.getElementById("serveBtn");
+  if (mode === "sandbox") {
+    serveBtn.textContent = "SHOW OFF";
+    setBubble("Sandbox is open! Make any dream cake");
+    renderCake();
+    renderTicket();
+  } else {
+    serveBtn.textContent = "PACK AND SERVE";
+    nextCustomer();
+  }
+}
+
+// builds the zigzag bottom edge of the receipt paper
+function zigzagShape() {
+  const teeth = 18;
+  const points = ["0 0", "100% 0"];
+  for (let i = teeth; i >= 0; i--) {
+    const x = ((i / teeth) * 100).toFixed(2) + "%";
+    points.push(x + " " + (i % 2 ? "calc(100% - 10px)" : "100%"));
+  }
+  return "polygon(" + points.join(",") + ")";
+}
+
+// ends the shift and prints the receipt
+function endShift() {
+  if (mode !== "shift") {
+    showToast("NO SHIFT IN SANDBOX");
+    return;
+  }
+  busy = true;
+  shiftRunning = false;
+  function line(label, value) {
+    return '<div class="r-line"><span>' + label + "</span><span>" + value + "</span></div>";
+  }
+  const receipt = document.getElementById("receipt");
+  receipt.innerHTML =
+    "<h2>PIXL CAFE</h2>" +
+    '<div class="r-center">Patisserie counter</div>' +
+    '<div class="r-center">' + new Date().toLocaleString() + "</div><hr>" +
+    line("Cakes served", served) +
+    line("Customers lost", missed) +
+    line("Best combo", "x" + bestCombo) +
+    line("Tips earned", tips) +
+    "<hr>" +
+    '<div class="r-line r-total"><span>TOTAL</span><span>' + coins + "</span></div>" +
+    '<div class="r-center">High score ' + highScore + "</div>" +
+    (beatRecord ? '<div class="r-center r-new">NEW HIGH SCORE!</div>' : "") +
+    '<hr><div class="r-center">Thank you! Come again!</div><div class="barcode"></div>';
+  receipt.style.setProperty("--zig", zigzagShape());
+  receipt.style.animation = "none";
+  void receipt.offsetWidth;
+  receipt.style.animation = "";
+  document.getElementById("modal").classList.add("show");
+  sfx.print();
+}
+
+// starts a fresh shift after the receipt
+function newShift() {
+  coins = 0;
+  combo = 0;
+  served = 0;
+  missed = 0;
+  tips = 0;
+  bestCombo = 0;
+  beatRecord = false;
+  shiftStartHigh = highScore;
+  document.getElementById("modal").classList.remove("show");
+  nextCustomer();
+  updateStats();
+}
+
+// wires up every click
+document.getElementById("tabs").addEventListener("click", function (e) {
+  const tab = e.target.closest(".tab");
+  if (tab) setTab(tab.dataset.tab);
+});
+document.getElementById("grid").addEventListener("click", function (e) {
+  const item = e.target.closest(".item");
+  if (item) addIngredient(item.dataset.id);
+});
+document.getElementById("trashBtn").addEventListener("click", resetCake);
 document.getElementById("serveBtn").addEventListener("click", serveCake);
+document.querySelectorAll(".seg-btn").forEach(function (btn) {
+  btn.addEventListener("click", function () { setMode(btn.dataset.mode); });
+});
+document.getElementById("endShiftBtn").addEventListener("click", endShift);
+document.getElementById("newShiftBtn").addEventListener("click", newShift);
+document.getElementById("soundBtn").addEventListener("click", function () {
+  soundOn = !soundOn;
+  document.getElementById("soundBtn").textContent = soundOn ? "SOUND ON" : "SOUND OFF";
+  if (soundOn) sfx.plop();
+});
 
 // first draw
 setTab("sponge");

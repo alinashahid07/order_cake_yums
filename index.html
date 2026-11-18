@@ -15,10 +15,13 @@
       <div class="chip">COINS <span id="coins">0</span></div>
       <div class="chip">COMBO <span id="combo">x1.00</span></div>
       <div class="chip">SERVED <span id="served">0</span></div>
+      <div class="chip">BEST <span id="highScore">0</span></div>
       <div class="seg">
         <button class="seg-btn on" data-mode="shift">SHIFT</button>
         <button class="seg-btn" data-mode="sandbox">SANDBOX</button>
       </div>
+      <button class="btn" id="soundBtn">SOUND ON</button>
+      <button class="btn btn-green" id="endShiftBtn">END SHIFT</button>
     </div>
   </header>
 
@@ -34,18 +37,6 @@
       </div>
       <div class="ticket-area">
         <div class="ticket" id="ticket"></div>
-      </div>
-        <div class="ticket" id="ticket">
-          <h3 class="ticket-title">ORDER #001</h3>
-          <div class="ticket-row"><span class="lbl">SPONGE</span><span class="val">Chocolate</span></div>
-          <div class="ticket-row"><span class="lbl">FROSTING</span><span class="val">Pink Butter</span></div>
-          <div class="ticket-row"><span class="lbl">DRIP</span><span class="val">Caramel</span></div>
-          <div class="ticket-row"><span class="lbl">TOPPING</span><span class="val">Cherry</span></div>
-          <div class="patience">
-            <span class="lbl">PATIENCE</span>
-            <div class="bar"><div class="bar-fill" id="patienceFill"></div></div>
-          </div>
-        </div>
       </div>
     </section>
 
@@ -82,6 +73,18 @@
     </section>
 
   </main>
+
+  <!-- receipt popup shown at the end of a shift -->
+  <div class="modal" id="modal">
+    <div>
+      <div class="receipt-shell">
+        <div class="receipt" id="receipt"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-green" id="newShiftBtn">NEW SHIFT</button>
+      </div>
+    </div>
+  </div>
 
   <script src="game.js"></script>
 </body>
