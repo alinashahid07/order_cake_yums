@@ -517,9 +517,21 @@ body {
 .r-total { font-size: 20px; margin-bottom: 6px; }
 .r-new { margin-top: 6px; color: #b8326b; }
 
-/* fake barcode at the bottom of the receipt */
 .barcode {
   height: 36px;
   margin-top: 12px;
   background: repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 5px, var(--ink) 5px 9px, transparent 9px 11px, var(--ink) 11px 12px, transparent 12px 16px);
+}
+
+/* customer sprite replaces the placeholder box */
+.customer {
+  width: auto;
+  height: auto;
+  background: none;
+  border: 0;
+  animation: bob 1.2s steps(2) infinite;
+}
+
+@keyframes bob {
+  50% { transform: translateY(-4px); }
 }

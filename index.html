@@ -8,7 +8,6 @@
 </head>
 <body>
 
-  <!-- top bar with logo and stats and mode buttons -->
   <header class="topbar">
     <div class="logo">PIXL PATISSERIE</div>
     <div class="chips">
@@ -27,7 +26,7 @@
 
   <main class="layout">
 
-    <!-- left panel with the customer and the order ticket -->
+    <!-- left side, customer and ticket -->
     <section class="panel" aria-label="Customer and order">
       <h2 class="panel-title">CUSTOMER</h2>
       <div class="scene">
@@ -40,7 +39,7 @@
       </div>
     </section>
 
-    <!-- center panel with the cake stand -->
+    <!-- middle, the cake stand -->
     <section class="panel" aria-label="Cake stand">
       <h2 class="panel-title">CAKE STAND</h2>
       <div class="stage" id="stage">
@@ -59,7 +58,7 @@
       </div>
     </section>
 
-    <!-- right panel with the ingredient station -->
+    <!-- right side, ingredients -->
     <section class="panel" aria-label="Ingredient station">
       <h2 class="panel-title">INGREDIENT STATION</h2>
       <div class="tabs" id="tabs">
@@ -68,13 +67,12 @@
         <button class="tab" data-tab="drip">DRIP</button>
         <button class="tab" data-tab="topping">TOPS</button>
       </div>
-      <!-- game.js fills this grid with buttons for the active tab -->
       <div class="grid" id="grid"></div>
     </section>
 
   </main>
 
-  <!-- receipt popup shown at the end of a shift -->
+  <!-- receipt shows up here when the shift ends -->
   <div class="modal" id="modal">
     <div>
       <div class="receipt-shell">

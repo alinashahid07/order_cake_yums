@@ -1,262 +1,180 @@
-// ingredient data for every tab
+const $ = id => document.getElementById(id);
+
 const MENU = {
   sponge: [
-    { id: "vanilla", name: "Vanilla", color: "#ffe3a3", price: 3 },
-    { id: "chocolate", name: "Chocolate", color: "#8a5a44", price: 3 },
-    { id: "strawberry", name: "Strawberry", color: "#ffa6c1", price: 4 },
-    { id: "velvet", name: "Red Velvet", color: "#d9566a", price: 5 },
-    { id: "matcha", name: "Matcha", color: "#b9d98c", price: 5 }
+    {id: "vanilla", name: "Vanilla", color: "#ffe3a3", price: 3},
+    {id: "chocolate", name: "Chocolate", color: "#8a5a44", price: 3},
+    {id: "strawberry", name: "Strawberry", color: "#ffa6c1", price: 4},
+    {id: "velvet", name: "Red Velvet", color: "#d9566a", price: 5},
+    {id: "matcha", name: "Matcha", color: "#b9d98c", price: 5}
   ],
   frosting: [
-    { id: "cream", name: "Cream", color: "#fff6e5", price: 2 },
-    { id: "pink", name: "Pink Butter", color: "#ffb8d1", price: 2 },
-    { id: "cocoa", name: "Cocoa", color: "#a06a52", price: 3 },
-    { id: "mint", name: "Mint", color: "#a8e6cf", price: 3 },
-    { id: "berry", name: "Blueberry", color: "#b9b2f0", price: 3 }
+    {id: "cream", name: "Cream", color: "#fff6e5", price: 2},
+    {id: "pink", name: "Pink Butter", color: "#ffb8d1", price: 2},
+    {id: "cocoa", name: "Cocoa", color: "#a06a52", price: 3},
+    {id: "mint", name: "Mint", color: "#a8e6cf", price: 3},
+    {id: "berry", name: "Blueberry", color: "#b9b2f0", price: 3}
   ],
   drip: [
-    { id: "caramel", name: "Caramel", color: "#e8a24a", price: 2 },
-    { id: "fudge", name: "Fudge", color: "#5e3a2e", price: 2 },
-    { id: "berry", name: "Berry", color: "#ff6f91", price: 2 },
-    { id: "white", name: "White Choc", color: "#fff1c9", price: 3 }
+    {id: "caramel", name: "Caramel", color: "#e8a24a", price: 2},
+    {id: "fudge", name: "Fudge", color: "#5e3a2e", price: 2},
+    {id: "berry", name: "Berry", color: "#ff6f91", price: 2},
+    {id: "white", name: "White Choc", color: "#fff1c9", price: 3}
   ],
   topping: [
-    { id: "cherry", name: "Cherry", price: 2 },
-    { id: "strawberry", name: "Strawberry", price: 3 },
-    { id: "sprinkles", name: "Sprinkles", price: 1 },
-    { id: "star", name: "Gold Star", price: 3 },
-    { id: "candle", name: "Candle", price: 1 },
-    { id: "macaron", name: "Macaron", price: 4 }
+    {id: "cherry", name: "Cherry", price: 2},
+    {id: "strawberry", name: "Strawberry", price: 3},
+    {id: "sprinkles", name: "Sprinkles", price: 1},
+    {id: "star", name: "Gold Star", price: 3},
+    {id: "candle", name: "Candle", price: 1},
+    {id: "macaron", name: "Macaron", price: 4}
   ]
 };
 
-// limits for how big a cake can get
-const MAX_LAYERS = 6;
-const MAX_SPONGES = 3;
-const MAX_TOPPINGS = 4;
+const MAX_LAYERS = 6, MAX_SPONGES = 3, MAX_TOPPINGS = 4;
 const PATIENCE_SECONDS = 40;
 
-// the cake is a list of layers from bottom to top
 let currentCake = [];
 let activeTab = "sponge";
 let nextLayerId = 1;
-let drawnIds = new Set();
+const drawnIds = new Set();
 
-// shift state for orders and scoring
 let mode = "shift";
-let coins = 0;
-let combo = 0;
-let served = 0;
-let missed = 0;
-let tips = 0;
-let bestCombo = 0;
+let coins = 0, combo = 0, served = 0, missed = 0, tips = 0, bestCombo = 0;
 let beatRecord = false;
-let currentOrder = null;
-let orderNumber = 0;
+let currentOrder, orderNumber = 0;
 let patience = 1;
-let shiftRunning = false;
-let busy = false;
+let shiftRunning = false, busy = false;
+let nextTimer, toastTimer;
 
-// high score is saved in the browser so it survives a refresh
-function loadHighScore() {
-  try {
-    return Number(localStorage.getItem("pixlPatisserieHigh")) || 0;
-  } catch (err) {
-    return 0;
-  }
-}
-
-function saveHighScore(score) {
-  try {
-    localStorage.setItem("pixlPatisserieHigh", String(score));
-  } catch (err) {}
-}
-
-let highScore = loadHighScore();
-let shiftStartHigh = highScore;
-
-// pixel art for the toppings drawn from rows of letters
+// sprites, each letter is a color from the palette next to it
 const INK = "#5b3a4a";
 const ART = {
   cherry: {
-    pal: { k: INK, R: "#f0475f", w: "#fff", g: "#4fa35f" },
+    pal: {k: INK, R: "#f0475f", w: "#fff", g: "#4fa35f"},
     rows: ["....ggg..", "...g.....", "...g.....", "..kkkk...", ".kRRRRk..", ".kRwRRRk.", ".kRRRRRk.", "..kRRRk..", "...kkk..."]
   },
   strawberry: {
-    pal: { k: INK, R: "#ff5470", y: "#ffe08a", g: "#4fa35f" },
+    pal: {k: INK, R: "#ff5470", y: "#ffe08a", g: "#4fa35f"},
     rows: ["...gg.gg...", "....gggg...", ".kkkkkkkkk.", "kRRRRRRRRRk", "kRRyRRRyRRk", ".kRRRRRRRk.", ".kRRyRRyRk.", "..kRRRRRk..", "...kRRRk...", "....kkk...."]
   },
   sprinkles: {
-    pal: { p: "#ff6fa5", b: "#5ab0ff", y: "#ffd34d", g: "#5fcf8f" },
+    pal: {p: "#ff6fa5", b: "#5ab0ff", y: "#ffd34d", g: "#5fcf8f"},
     rows: ["pp...bb..yy", "..gg...pp..", "yy..bb...gg"]
   },
   star: {
-    pal: { y: "#ffd34d", o: "#f2a93b" },
+    pal: {y: "#ffd34d", o: "#f2a93b"},
     rows: ["....y....", "....y....", "...yyy...", "yyyyyyyyy", ".yyyyyyy.", "..yyoyy..", ".yyy.yyy.", ".yy...yy."]
   },
   candle: {
-    pal: { o: "#ff9d3c", y: "#ffe66d", k: INK, p: "#ff9fc4", w: "#fff" },
+    pal: {o: "#ff9d3c", y: "#ffe66d", k: INK, p: "#ff9fc4", w: "#fff"},
     rows: ["..o..", ".oyo.", "..o..", ".kpk.", ".kwk.", ".kpk.", ".kwk.", ".kpk."]
   },
   macaron: {
-    pal: { k: INK, m: "#9ee6c4", w: "#fff6e8" },
+    pal: {k: INK, m: "#9ee6c4", w: "#fff6e8"},
     rows: ["..kkkkkkk..", ".kmmmmmmmk.", "kmmmmmmmmmk", ".kwwwwwwwk.", "kmmmmmmmmmk", ".kmmmmmmmk.", "..kkkkkkk.."]
   }
 };
 
-// turns a topping into an svg made of one square per pixel
-function toppingArt(id, scale) {
-  const art = ART[id];
-  const width = Math.max.apply(null, art.rows.map(function (r) { return r.length; }));
-  const height = art.rows.length;
-  let squares = "";
-  art.rows.forEach(function (row, y) {
-    for (let x = 0; x < row.length; x++) {
-      const color = art.pal[row[x]];
-      if (color) {
-        squares += '<rect x="' + x + '" y="' + y + '" width="1" height="1" fill="' + color + '"/>';
-      }
-    }
+const CUSTOMER_ROWS = [
+  "....kkkkkk....",
+  "...khhhhhhk...",
+  "..khhhhhhhhk..",
+  "..khhsssssdhk.",
+  "..kssksskssk..",
+  "..ksrssssrsk..",
+  "...kssmmssk...",
+  "....kksssk....",
+  "..kkttttttkk..",
+  ".kttttttttttk.",
+  ".ksttttttttsk.",
+  "..kttttttttk..",
+  "..kttttttttk.."
+];
+const LOOKS = [
+  {hair: "#7a4b3a", shirt: "#7ec8e3"},
+  {hair: "#2f2a3a", shirt: "#ffb347"},
+  {hair: "#f0b95a", shirt: "#c8a2f0"},
+  {hair: "#d95b6a", shirt: "#8fe0b0"}
+];
+
+function pixelSvg(rows, pal, scale) {
+  const w = Math.max(...rows.map(r => r.length));
+  let rects = "";
+  rows.forEach((row, y) => {
+    [...row].forEach((ch, x) => {
+      if (pal[ch]) rects += `<rect x="${x}" y="${y}" width="1" height="1" fill="${pal[ch]}"/>`;
+    });
   });
-  return '<svg width="' + width * scale + '" height="' + height * scale + '" viewBox="0 0 ' + width + " " + height +
-    '" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">' + squares + "</svg>";
+  return `<svg width="${w * scale}" height="${rows.length * scale}" viewBox="0 0 ${w} ${rows.length}" shape-rendering="crispEdges">${rects}</svg>`;
 }
 
-// small helpers
-function pick(list) {
-  return list[Math.floor(Math.random() * list.length)];
+const toppingArt = (id, scale) => pixelSvg(ART[id].rows, ART[id].pal, scale);
+
+function drawCustomer() {
+  const look = pick(LOOKS);
+  const pal = {k: INK, s: "#ffd9bd", r: "#ff9fa8", m: "#c4566b", h: look.hair, d: look.hair, t: look.shirt};
+  $("customer").innerHTML = pixelSvg(CUSTOMER_ROWS, pal, 8);
 }
 
-function findItem(kind, id) {
-  return MENU[kind].find(function (item) { return item.id === id; });
-}
+const pick = list => list[Math.floor(Math.random() * list.length)];
+const findItem = (kind, id) => MENU[kind].find(i => i.id === id);
+const nameOf = (kind, id) => findItem(kind, id).name;
+const sameList = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
+const sameSet = (a, b) => a.length === b.length && a.every(x => b.includes(x));
+const setBubble = text => $("bubble").textContent = text;
 
-function nameOf(kind, id) {
-  return findItem(kind, id).name;
-}
+const cakeValue = () => currentCake.reduce((sum, l) => sum + findItem(l.kind, l.id).price, 0);
 
-function sameList(a, b) {
-  return a.length === b.length && a.every(function (x, i) { return x === b[i]; });
-}
-
-function sameSet(a, b) {
-  return a.length === b.length && a.every(function (x) { return b.includes(x); });
-}
-
-function setBubble(text) {
-  document.getElementById("bubble").textContent = text;
-}
-
-// adds up the price of every layer on the stand
-function cakeValue() {
-  return currentCake.reduce(function (sum, layer) {
-    return sum + findItem(layer.kind, layer.id).price;
-  }, 0);
-}
-
-// small message at the top of the stage
-let toastTimer = null;
-function showToast(text) {
-  const toast = document.getElementById("toast");
-  toast.textContent = text;
-  toast.classList.add("show");
+function toast(text) {
+  const el = $("toast");
+  el.textContent = text;
+  el.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(function () { toast.classList.remove("show"); }, 1400);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 1400);
 }
 
-// shakes the stack when a click is refused
 function shakeStack() {
-  const stack = document.getElementById("stack");
-  stack.classList.remove("shake");
-  void stack.offsetWidth;
-  stack.classList.add("shake");
+  const s = $("stack");
+  s.classList.remove("shake");
+  void s.offsetWidth;
+  s.classList.add("shake");
 }
 
-// sound effects made with the web audio api
-let soundOn = true;
-let audioCtx = null;
-
-function playTone(freq, seconds, wave, volume, endFreq, delay) {
-  if (!soundOn) return;
-  try {
-    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-    const start = audioCtx.currentTime + (delay || 0);
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = wave;
-    osc.frequency.setValueAtTime(freq, start);
-    if (endFreq) osc.frequency.exponentialRampToValueAtTime(endFreq, start + seconds);
-    gain.gain.setValueAtTime(volume, start);
-    gain.gain.exponentialRampToValueAtTime(0.0001, start + seconds);
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start(start);
-    osc.stop(start + seconds);
-  } catch (err) {}
-}
-
-const sfx = {
-  plop: function () {
-    playTone(420, 0.12, "square", 0.05, 160, 0);
-    playTone(220, 0.08, "triangle", 0.05, 120, 0.04);
-  },
-  ding: function () {
-    playTone(988, 0.12, "square", 0.05, null, 0);
-    playTone(1319, 0.28, "square", 0.05, null, 0.1);
-  },
-  buzz: function () {
-    playTone(160, 0.25, "sawtooth", 0.05, 90, 0);
-  },
-  trash: function () {
-    playTone(300, 0.2, "square", 0.04, 70, 0);
-  },
-  print: function () {
-    for (let i = 0; i < 8; i++) playTone(900 + (i % 2) * 200, 0.04, "square", 0.03, null, i * 0.08);
-  }
-};
-
-// builds the ingredient buttons for the active tab
+// ingredient buttons and tabs
 function renderGrid() {
-  const grid = document.getElementById("grid");
-  grid.innerHTML = MENU[activeTab].map(function (item) {
+  $("grid").innerHTML = MENU[activeTab].map(item => {
     const look = activeTab === "topping"
-      ? '<span class="item-art">' + toppingArt(item.id, 3) + "</span>"
-      : '<span class="swatch" style="--c:' + item.color + '"></span>';
-    return '<button class="item" data-id="' + item.id + '">' + look +
-      "<span>" + item.name + "</span><small>$" + item.price + "</small></button>";
+      ? `<span class="item-art">${toppingArt(item.id, 3)}</span>`
+      : `<span class="swatch" style="--c:${item.color}"></span>`;
+    return `<button class="item" data-id="${item.id}">${look}<span>${item.name}</span><small>$${item.price}</small></button>`;
   }).join("");
 }
 
-// highlights the active tab and refreshes the grid
 function setTab(name) {
   activeTab = name;
-  document.querySelectorAll(".tab").forEach(function (tab) {
-    tab.classList.toggle("on", tab.dataset.tab === name);
-  });
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.tab === name));
   renderGrid();
 }
 
-// returns a reason when the click is not allowed or an empty string when it is
-function refusalReason(kind, id) {
-  const flat = currentCake.filter(function (l) { return l.kind !== "topping"; });
-  const sponges = currentCake.filter(function (l) { return l.kind === "sponge"; });
-  const toppings = currentCake.filter(function (l) { return l.kind === "topping"; });
+// empty string means the click is fine
+function refusal(kind, id) {
+  const count = k => currentCake.filter(l => l.kind === k).length;
   if (kind === "topping") {
-    if (toppings.some(function (l) { return l.id === id; })) return "ALREADY ON TOP";
-    if (toppings.length >= MAX_TOPPINGS) return "TOP IS FULL";
+    if (currentCake.some(l => l.kind === "topping" && l.id === id)) return "ALREADY ON TOP";
+    if (count("topping") >= MAX_TOPPINGS) return "TOP IS FULL";
     return "";
   }
-  if (flat.length >= MAX_LAYERS) return "STACK IS FULL";
-  if (kind === "sponge" && sponges.length >= MAX_SPONGES) return "MAX 3 SPONGES";
+  if (currentCake.length - count("topping") >= MAX_LAYERS) return "STACK IS FULL";
+  if (kind === "sponge" && count("sponge") >= MAX_SPONGES) return "MAX 3 SPONGES";
   return "";
 }
 
-// pushes one ingredient onto the cake
 function addIngredient(id) {
   if (busy) return;
-  const reason = refusalReason(activeTab, id);
-  if (reason) {
-    showToast(reason);
+  const why = refusal(activeTab, id);
+  if (why) {
+    toast(why);
     shakeStack();
     sfx.buzz();
     return;
@@ -265,129 +183,109 @@ function addIngredient(id) {
     shiftRunning = true;
     setBubble("One cake please! Check the ticket.");
   }
-  currentCake.push({ uid: nextLayerId++, kind: activeTab, id: id });
+  currentCake.push({uid: nextLayerId++, kind: activeTab, id});
   sfx.plop();
   renderCake();
 }
 
-// clears the stand
 function resetCake() {
-  if (busy || currentCake.length === 0) return;
+  if (busy || !currentCake.length) return;
   currentCake = [];
   drawnIds.clear();
   sfx.trash();
   renderCake();
 }
 
-// draws the whole stack and only animates layers that are new
+// redraws everything but only new layers get the drop animation
 function renderCake() {
-  const stack = document.getElementById("stack");
+  const stack = $("stack");
   stack.innerHTML = "";
-  const layers = currentCake.filter(function (l) { return l.kind !== "topping"; });
-  const toppings = currentCake.filter(function (l) { return l.kind === "topping"; });
+  const tops = currentCake.filter(l => l.kind === "topping");
 
-  layers.forEach(function (layer) {
-    const item = findItem(layer.kind, layer.id);
+  currentCake.filter(l => l.kind !== "topping").forEach(l => {
     const div = document.createElement("div");
-    div.className = "layer " + layer.kind + (drawnIds.has(layer.uid) ? "" : " drop");
-    div.style.setProperty("--c", item.color);
+    div.className = `layer ${l.kind}` + (drawnIds.has(l.uid) ? "" : " drop");
+    div.style.setProperty("--c", findItem(l.kind, l.id).color);
     stack.appendChild(div);
   });
 
-  if (toppings.length > 0) {
+  if (tops.length) {
     const row = document.createElement("div");
     row.className = "toppings";
-    toppings.forEach(function (t) {
+    tops.forEach(t => {
       const cell = document.createElement("div");
-      cell.className = drawnIds.has(t.uid) ? "" : "drop";
+      if (!drawnIds.has(t.uid)) cell.className = "drop";
       cell.innerHTML = toppingArt(t.id, 4);
       row.appendChild(cell);
     });
     stack.appendChild(row);
   }
 
-  currentCake.forEach(function (l) { drawnIds.add(l.uid); });
-  document.getElementById("hint").style.display = currentCake.length ? "none" : "block";
-  document.getElementById("value").textContent = "$" + cakeValue();
+  currentCake.forEach(l => drawnIds.add(l.uid));
+  $("hint").style.display = currentCake.length ? "none" : "block";
+  $("value").textContent = "$" + cakeValue();
 }
 
-// builds a random order with one or two sponges and a frosting and maybe a drip and one or two toppings
+// orders get harder the more you serve
 function makeOrder() {
-  const order = {
-    sponges: [pick(MENU.sponge).id],
-    frosting: pick(MENU.frosting).id,
-    drip: null,
-    toppings: []
-  };
-  if (Math.random() < 0.3) order.sponges.push(pick(MENU.sponge).id);
-  if (Math.random() < 0.6) order.drip = pick(MENU.drip).id;
-  const shuffled = MENU.topping.slice().sort(function () { return Math.random() - 0.5; });
-  const count = 1 + Math.floor(Math.random() * 2);
-  order.toppings = shuffled.slice(0, count).map(function (t) { return t.id; });
-  return order;
+  const level = Math.min(served, 10) / 10;
+  const o = {sponges: [pick(MENU.sponge).id], frosting: pick(MENU.frosting).id, drip: null, toppings: []};
+  if (served >= 2 && Math.random() < 0.1 + 0.4 * level) o.sponges.push(pick(MENU.sponge).id);
+  if (Math.random() < 0.4 + 0.4 * level) o.drip = pick(MENU.drip).id;
+  const shuffled = [...MENU.topping].sort(() => Math.random() - 0.5);
+  const howMany = served >= 3 && Math.random() < 0.3 + 0.5 * level ? 2 : 1;
+  o.toppings = shuffled.slice(0, howMany).map(t => t.id);
+  return o;
 }
 
-// base pay for an order is double the ingredient prices plus a flat bonus
-function orderValue(order) {
+function orderValue(o) {
   let sum = 0;
-  order.sponges.forEach(function (id) { sum += findItem("sponge", id).price; });
-  sum += findItem("frosting", order.frosting).price;
-  if (order.drip) sum += findItem("drip", order.drip).price;
-  order.toppings.forEach(function (id) { sum += findItem("topping", id).price; });
+  o.sponges.forEach(id => sum += findItem("sponge", id).price);
+  sum += findItem("frosting", o.frosting).price;
+  if (o.drip) sum += findItem("drip", o.drip).price;
+  o.toppings.forEach(id => sum += findItem("topping", id).price);
   return sum * 2 + 4;
 }
 
-// draws the ticket or the free play note in sandbox mode
 function renderTicket() {
-  const ticket = document.getElementById("ticket");
   if (mode === "sandbox") {
-    ticket.innerHTML =
-      '<h3 class="ticket-title">FREE PLAY</h3>' +
-      '<div class="ticket-sub">No timer and no orders. Stack any dream cake you like then show it off.</div>';
+    $("ticket").innerHTML = `<h3 class="ticket-title">FREE PLAY</h3>
+      <div class="ticket-sub">No timer and no orders. Stack any dream cake you like then show it off.</div>`;
     return;
   }
   const o = currentOrder;
-  const sponges = o.sponges.map(function (id) { return nameOf("sponge", id); }).join(" + ");
-  const drip = o.drip ? nameOf("drip", o.drip) : "none";
-  const toppings = o.toppings.map(function (id) { return nameOf("topping", id); }).join(", ");
-  ticket.innerHTML =
-    '<h3 class="ticket-title">ORDER #' + String(orderNumber).padStart(3, "0") + "</h3>" +
-    '<div class="ticket-sub">Pays $' + orderValue(o) + " plus tip</div>" +
-    '<div class="ticket-row"><span class="lbl">SPONGE</span><span class="val">' + sponges + "</span></div>" +
-    '<div class="ticket-row"><span class="lbl">FROSTING</span><span class="val">' + nameOf("frosting", o.frosting) + "</span></div>" +
-    '<div class="ticket-row"><span class="lbl">DRIP</span><span class="val">' + drip + "</span></div>" +
-    '<div class="ticket-row"><span class="lbl">TOPPING</span><span class="val">' + toppings + "</span></div>" +
-    '<div class="patience"><span class="lbl">PATIENCE</span><div class="bar"><div class="bar-fill" id="patienceFill"></div></div></div>';
+  const row = (label, val) => `<div class="ticket-row"><span class="lbl">${label}</span><span class="val">${val}</span></div>`;
+  $("ticket").innerHTML = `
+    <h3 class="ticket-title">ORDER #${String(orderNumber).padStart(3, "0")}</h3>
+    <div class="ticket-sub">Pays $${orderValue(o)} plus tip</div>
+    ${row("SPONGE", o.sponges.map(id => nameOf("sponge", id)).join(" + "))}
+    ${row("FROSTING", nameOf("frosting", o.frosting))}
+    ${row("DRIP", o.drip ? nameOf("drip", o.drip) : "none")}
+    ${row("TOPPING", o.toppings.map(id => nameOf("topping", id)).join(", "))}
+    <div class="patience"><span class="lbl">PATIENCE</span><div class="bar"><div class="bar-fill" id="patienceFill"></div></div></div>`;
 }
 
-// the combo multiplier grows by a quarter per streak and stops at six
-function comboMultiplier() {
-  return 1 + Math.min(combo, 6) * 0.25;
-}
+const comboMult = () => 1 + Math.min(combo, 6) * 0.25;
 
 function updateStats() {
-  document.getElementById("coins").textContent = coins;
-  document.getElementById("combo").textContent = "x" + comboMultiplier().toFixed(2);
-  document.getElementById("served").textContent = served;
-  document.getElementById("highScore").textContent = highScore;
+  $("coins").textContent = coins;
+  $("combo").textContent = "x" + comboMult().toFixed(2);
+  $("served").textContent = served;
+  $("highScore").textContent = highScore;
 }
 
-// checks the cake against the order kind by kind
 function cakeMatchesOrder() {
-  function idsOf(kind) {
-    return currentCake.filter(function (l) { return l.kind === kind; }).map(function (l) { return l.id; });
-  }
-  const drips = idsOf("drip");
+  const ids = kind => currentCake.filter(l => l.kind === kind).map(l => l.id);
+  const drips = ids("drip");
   const dripOk = currentOrder.drip ? sameList(drips, [currentOrder.drip]) : drips.length === 0;
-  return sameList(idsOf("sponge"), currentOrder.sponges) &&
-    sameList(idsOf("frosting"), [currentOrder.frosting]) &&
-    dripOk &&
-    sameSet(idsOf("topping"), currentOrder.toppings);
+  return sameList(ids("sponge"), currentOrder.sponges)
+    && sameList(ids("frosting"), [currentOrder.frosting])
+    && dripOk
+    && sameSet(ids("topping"), currentOrder.toppings);
 }
 
-// brings in the next customer with a fresh order and an empty stand
 function nextCustomer() {
-  if (mode !== "shift" || document.getElementById("modal").classList.contains("show")) return;
+  if (mode !== "shift" || $("modal").classList.contains("show")) return;
   currentCake = [];
   drawnIds.clear();
   currentOrder = makeOrder();
@@ -395,54 +293,60 @@ function nextCustomer() {
   patience = 1;
   busy = false;
   setBubble("One cake please!");
+  drawCustomer();
   renderCake();
   renderTicket();
 }
 
-// pack and serve button
+function scheduleNext() {
+  clearTimeout(nextTimer);
+  nextTimer = setTimeout(nextCustomer, 1300);
+}
+
 function serveCake() {
   if (busy) return;
-  if (currentCake.length === 0) {
-    showToast("STACK A CAKE FIRST");
+  if (!currentCake.length) {
+    toast("STACK A CAKE FIRST");
     sfx.buzz();
     return;
   }
   if (mode === "sandbox") {
     sfx.ding();
     setBubble("Wow that looks delicious!");
-    showToast("LOOKS DELICIOUS");
+    toast("LOOKS DELICIOUS");
     return;
   }
-  if (cakeMatchesOrder()) {
-    busy = true;
-    const base = Math.round(orderValue(currentOrder) * comboMultiplier());
-    const tip = Math.round(base * 0.5 * Math.max(0, patience));
-    coins += base + tip;
-    tips += tip;
-    combo++;
-    served++;
-    bestCombo = Math.max(bestCombo, combo);
-    if (coins > highScore) {
-      highScore = coins;
-      saveHighScore(highScore);
-      if (highScore > shiftStartHigh) beatRecord = true;
-    }
-    updateStats();
-    sfx.ding();
-    setBubble("Yum! Thank you!");
-    showToast("+" + (base + tip) + " COINS (TIP " + tip + ")");
-    setTimeout(nextCustomer, 1300);
-  } else {
+
+  if (!cakeMatchesOrder()) {
     combo = 0;
     updateStats();
     shakeStack();
     sfx.buzz();
     setBubble("Hmm that is not what I ordered");
-    showToast("NOT THE ORDER");
+    toast("NOT THE ORDER");
+    return;
   }
+
+  busy = true;
+  const base = Math.round(orderValue(currentOrder) * comboMult());
+  const tip = Math.round(base * 0.5 * Math.max(0, patience));
+  coins += base + tip;
+  tips += tip;
+  combo++;
+  served++;
+  bestCombo = Math.max(bestCombo, combo);
+  if (coins > highScore) {
+    highScore = coins;
+    saveHighScore(highScore);
+    if (highScore > shiftStartHigh) beatRecord = true;
+  }
+  updateStats();
+  sfx.ding();
+  setBubble("Yum! Thank you!");
+  toast(`+${base + tip} COINS (TIP ${tip})`);
+  scheduleNext();
 }
 
-// the customer gives up and leaves
 function customerLeaves() {
   busy = true;
   missed++;
@@ -450,19 +354,23 @@ function customerLeaves() {
   updateStats();
   sfx.buzz();
   setBubble("Too slow! Bye!");
-  showToast("CUSTOMER LEFT");
-  setTimeout(nextCustomer, 1300);
+  toast("CUSTOMER LEFT");
+  scheduleNext();
 }
 
-// drains patience using real time passed and colors the bar
+// faster customers the more you serve but never under 18 seconds
+const patienceSeconds = () => Math.max(18, PATIENCE_SECONDS - served * 1.5);
+
+// the cap on seconds stops a hidden tab from draining the bar
 let lastTick = performance.now();
-setInterval(function () {
+setInterval(() => {
   const now = performance.now();
-  const seconds = (now - lastTick) / 1000;
+  const secs = Math.min((now - lastTick) / 1000, 0.5);
   lastTick = now;
   if (mode !== "shift" || !shiftRunning || busy) return;
-  patience -= seconds / PATIENCE_SECONDS;
-  const fill = document.getElementById("patienceFill");
+
+  patience -= secs / patienceSeconds();
+  const fill = $("patienceFill");
   if (fill) {
     fill.style.width = Math.max(0, patience) * 100 + "%";
     fill.className = "bar-fill" + (patience < 0.3 ? " low" : patience < 0.6 ? " mid" : "");
@@ -470,110 +378,138 @@ setInterval(function () {
   if (patience <= 0) customerLeaves();
 }, 100);
 
-// switches between shift mode and the free play sandbox
 function setMode(newMode) {
+  clearTimeout(nextTimer);
   mode = newMode;
-  document.querySelectorAll(".seg-btn").forEach(function (btn) {
-    btn.classList.toggle("on", btn.dataset.mode === newMode);
-  });
+  document.querySelectorAll(".seg-btn").forEach(b => b.classList.toggle("on", b.dataset.mode === newMode));
   currentCake = [];
   drawnIds.clear();
   busy = false;
   shiftRunning = false;
-  const serveBtn = document.getElementById("serveBtn");
+
   if (mode === "sandbox") {
-    serveBtn.textContent = "SHOW OFF";
+    $("serveBtn").textContent = "SHOW OFF";
     setBubble("Sandbox is open! Make any dream cake");
     renderCake();
     renderTicket();
   } else {
-    serveBtn.textContent = "PACK AND SERVE";
+    $("serveBtn").textContent = "PACK AND SERVE";
     nextCustomer();
   }
 }
 
-// builds the zigzag bottom edge of the receipt paper
-function zigzagShape() {
+// receipt stuff
+function zigzag() {
   const teeth = 18;
-  const points = ["0 0", "100% 0"];
+  const pts = ["0 0", "100% 0"];
   for (let i = teeth; i >= 0; i--) {
-    const x = ((i / teeth) * 100).toFixed(2) + "%";
-    points.push(x + " " + (i % 2 ? "calc(100% - 10px)" : "100%"));
+    pts.push(`${(i / teeth * 100).toFixed(2)}% ${i % 2 ? "calc(100% - 10px)" : "100%"}`);
   }
-  return "polygon(" + points.join(",") + ")";
+  return `polygon(${pts.join(",")})`;
 }
 
-// ends the shift and prints the receipt
 function endShift() {
   if (mode !== "shift") {
-    showToast("NO SHIFT IN SANDBOX");
+    toast("NO SHIFT IN SANDBOX");
     return;
   }
+  clearTimeout(nextTimer);
   busy = true;
   shiftRunning = false;
-  function line(label, value) {
-    return '<div class="r-line"><span>' + label + "</span><span>" + value + "</span></div>";
-  }
-  const receipt = document.getElementById("receipt");
-  receipt.innerHTML =
-    "<h2>PIXL CAFE</h2>" +
-    '<div class="r-center">Patisserie counter</div>' +
-    '<div class="r-center">' + new Date().toLocaleString() + "</div><hr>" +
-    line("Cakes served", served) +
-    line("Customers lost", missed) +
-    line("Best combo", "x" + bestCombo) +
-    line("Tips earned", tips) +
-    "<hr>" +
-    '<div class="r-line r-total"><span>TOTAL</span><span>' + coins + "</span></div>" +
-    '<div class="r-center">High score ' + highScore + "</div>" +
-    (beatRecord ? '<div class="r-center r-new">NEW HIGH SCORE!</div>' : "") +
-    '<hr><div class="r-center">Thank you! Come again!</div><div class="barcode"></div>';
-  receipt.style.setProperty("--zig", zigzagShape());
-  receipt.style.animation = "none";
-  void receipt.offsetWidth;
-  receipt.style.animation = "";
-  document.getElementById("modal").classList.add("show");
+
+  const line = (label, val) => `<div class="r-line"><span>${label}</span><span>${val}</span></div>`;
+  const r = $("receipt");
+  r.innerHTML = `
+    <h2>PIXL CAFE</h2>
+    <div class="r-center">Patisserie counter</div>
+    <div class="r-center">${new Date().toLocaleString()}</div><hr>
+    ${line("Cakes served", served)}
+    ${line("Customers lost", missed)}
+    ${line("Best combo", "x" + bestCombo)}
+    ${line("Tips earned", tips)}
+    <hr>
+    <div class="r-line r-total"><span>TOTAL</span><span>${coins}</span></div>
+    <div class="r-center">High score ${highScore}</div>
+    ${beatRecord ? '<div class="r-center r-new">NEW HIGH SCORE!</div>' : ""}
+    <hr><div class="r-center">Thank you! Come again!</div><div class="barcode"></div>`;
+  r.style.setProperty("--zig", zigzag());
+  r.style.animation = "none";
+  void r.offsetWidth;
+  r.style.animation = "";
+  $("modal").classList.add("show");
   sfx.print();
 }
 
-// starts a fresh shift after the receipt
 function newShift() {
-  coins = 0;
-  combo = 0;
-  served = 0;
-  missed = 0;
-  tips = 0;
-  bestCombo = 0;
+  clearTimeout(nextTimer);
+  coins = combo = served = missed = tips = bestCombo = 0;
   beatRecord = false;
   shiftStartHigh = highScore;
-  document.getElementById("modal").classList.remove("show");
+  $("modal").classList.remove("show");
   nextCustomer();
   updateStats();
 }
 
-// wires up every click
-document.getElementById("tabs").addEventListener("click", function (e) {
+// high score lives in localStorage
+function saveHighScore(n) {
+  try { localStorage.setItem("pixlPatisserieHigh", String(n)); } catch (e) {}
+}
+
+let highScore = 0;
+try { highScore = Number(localStorage.getItem("pixlPatisserieHigh")) || 0; } catch (e) {}
+let shiftStartHigh = highScore;
+
+// sounds, all made from oscillators so no audio files
+let soundOn = true;
+let audioCtx;
+
+function tone(freq, len, wave, vol, endFreq, delay) {
+  if (!soundOn) return;
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const t = audioCtx.currentTime + (delay || 0);
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = wave;
+    osc.frequency.setValueAtTime(freq, t);
+    if (endFreq) osc.frequency.exponentialRampToValueAtTime(endFreq, t + len);
+    gain.gain.setValueAtTime(vol, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(t);
+    osc.stop(t + len);
+  } catch (e) {}
+}
+
+const sfx = {
+  plop() { tone(420, 0.12, "square", 0.05, 160); tone(220, 0.08, "triangle", 0.05, 120, 0.04); },
+  ding() { tone(988, 0.12, "square", 0.05); tone(1319, 0.28, "square", 0.05, null, 0.1); },
+  buzz() { tone(160, 0.25, "sawtooth", 0.05, 90); },
+  trash() { tone(300, 0.2, "square", 0.04, 70); },
+  print() { for (let i = 0; i < 8; i++) tone(900 + (i % 2) * 200, 0.04, "square", 0.03, null, i * 0.08); }
+};
+
+// clicks
+$("tabs").addEventListener("click", e => {
   const tab = e.target.closest(".tab");
   if (tab) setTab(tab.dataset.tab);
 });
-document.getElementById("grid").addEventListener("click", function (e) {
+$("grid").addEventListener("click", e => {
   const item = e.target.closest(".item");
   if (item) addIngredient(item.dataset.id);
 });
-document.getElementById("trashBtn").addEventListener("click", resetCake);
-document.getElementById("serveBtn").addEventListener("click", serveCake);
-document.querySelectorAll(".seg-btn").forEach(function (btn) {
-  btn.addEventListener("click", function () { setMode(btn.dataset.mode); });
-});
-document.getElementById("endShiftBtn").addEventListener("click", endShift);
-document.getElementById("newShiftBtn").addEventListener("click", newShift);
-document.getElementById("soundBtn").addEventListener("click", function () {
+$("trashBtn").addEventListener("click", resetCake);
+$("serveBtn").addEventListener("click", serveCake);
+$("endShiftBtn").addEventListener("click", endShift);
+$("newShiftBtn").addEventListener("click", newShift);
+document.querySelectorAll(".seg-btn").forEach(b => b.addEventListener("click", () => setMode(b.dataset.mode)));
+$("soundBtn").addEventListener("click", () => {
   soundOn = !soundOn;
-  document.getElementById("soundBtn").textContent = soundOn ? "SOUND ON" : "SOUND OFF";
+  $("soundBtn").textContent = soundOn ? "SOUND ON" : "SOUND OFF";
   if (soundOn) sfx.plop();
 });
 
-// first draw
 setTab("sponge");
 nextCustomer();
 updateStats();
