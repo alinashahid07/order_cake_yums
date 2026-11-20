@@ -25,9 +25,12 @@ We also have stack rules which mean what layer will go first and in what way.
 - up to 4 toppings, each one only once and they always on top
 - sponges have to be in the same order as the ticket. while toppings can go in any order
 
-## Stack
+## Tech Stack
 Well, its simple vanilla stack i did. It has no libraries or framework.
 And all sounds are made in the browser and pictures are drawn with code, so there are not audio or image files. 
+
+## How to run or build it
+Simply clone the repo and open index.html
 
 ## Ai decleration 
 I am new to website development. My main language is python and i have worked in streamlit mainly. I am interested in data science so. 
