@@ -420,8 +420,7 @@ function endShift() {
   const line = (label, val) => `<div class="r-line"><span>${label}</span><span>${val}</span></div>`;
   const r = $("receipt");
   r.innerHTML = `
-    <h2>PIXL CAFE</h2>
-    <div class="r-center">Patisserie counter</div>
+      <h2>ORDER UP CAKE</h2>
     <div class="r-center">${new Date().toLocaleString()}</div><hr>
     ${line("Cakes served", served)}
     ${line("Customers lost", missed)}

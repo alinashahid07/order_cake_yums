@@ -535,3 +535,14 @@ body {
 @keyframes bob {
   50% { transform: translateY(-4px); }
 }
+
+/* one beige for the page and every panel */
+:root { --beige: #f0e2c8; }
+
+body { background: var(--beige); }
+
+.panel,
+.panel-title,
+.scene,
+.stage,
+.stage-bar { background: var(--beige); }
